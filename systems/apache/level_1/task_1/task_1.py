@@ -41,25 +41,41 @@ def start_container(image_repositry,image_tags):
 
         print("Official images on Docker Hub:")
         for official_name in found_list[1:]:
-            print("{}. {}".format(found_list.index(official_name), official_name))
+            print("{}. {}\n".format(found_list.index(official_name), official_name))
 
-        image_index_to_pull = input("Which image would you like to work on from the above list?\n"
+        image_index_to_pull = int(input("Which image would you like to work on from the above list?\n"
                               "Enter the number which appears with the image name.\n"
                               "e.g. If you want to pull\n"
                               "3. tomcat7\n"
-                              "Then type in 3 and press the Enter key.")
+                              "Then type in 3 and press the Enter key.\n"))
 
         image_name_to_pull = found_list[image_index_to_pull]
-        image_tags = list()
+        image_tags = list([''])
         image_tags_request = requests.get("https://registry.hub.docker.com/v1/repositories/{}/tags".format(image_name_to_pull))
         for image_tag_details in image_tags_request.json():
             image_tags.append(image_tag_details['name'])
 
-        print("\n\nThe tags available for {} on Docker Hub are:".format(image))
+        print("\n\nThe tags available for {} on Docker Hub are:\n".format(image_name_to_pull))
+        for tag_name in image_tags[1:]:
+            print("{}. {}".format(image_tags.index(tag_name), tag_name))
 
-        # try:
-        #     image_to_pull = int(image_index_to_pull)
-        #     client_instance.pull(found_list[image_index_to_pull])
+        image_tag_to_pull = image_tags[int(input("Which {} tag do you want to work with?\n".format(image_name_to_pull)))]
+
+        image_to_pull = "{}:{}".format(image_name_to_pull, image_tag_to_pull)
+        print("Pulling {} now...".format(image_to_pull))
+        client_instance.pull(image_to_pull)
 
 if __name__ == '__main__':
-    start_container(sys.argv[1],sys.argv[2])
+    try:
+        image_name_argv = argv[1]
+    except IndexError:
+        image_name_argv = "centos"
+        print("No image name entered. Setting {} by default.".format(image_name_argv))
+
+    try:
+        image_tag_argv = argv[2]
+    except IndexError:
+        image_tag_argv = "6.6"
+        print("No image tag entered. Setting {} by default.".format(image_tag_argv))
+
+    start_container(image_name_argv,image_tag_argv)
