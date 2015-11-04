@@ -8,6 +8,7 @@ from config.docker_config import docker_config
 from sys import argv
 from docker import Client
 
+
 def search_images_local(image_list,user_repotag):
     local_repotags = list()
     for image_name in image_list:
@@ -19,29 +20,30 @@ def search_images_local(image_list,user_repotag):
     else:
         return False
 
-def start_container(image_repositry,image_tags):
+
+def start_container(image_repository, image_tags):
     # Establishing connection
     client_instance = Client(base_url=docker_config())
 
-    user_repotag = "{}:{}".format(image_repositry,image_tags)
+    user_repotag = "{}:{}".format(image_repository,image_tags)
 
     # Searching for images locally
     local_exists = search_images_local(client_instance.images(), user_repotag)
 
-    if local_exists == True:
+    if local_exists:
         print("Found the image {} locally, launching now.".format(user_repotag))
-    elif local_exists == False:
+    elif not local_exists:
         print("The image does not exist locally. Searching for official images on Docker Hub.")
-        hub_results = client_instance.search(image_repositry)
+        hub_results = client_instance.search(image_repository)
         found_list = list([''])
         for filtered_results in hub_results:
-            if filtered_results['is_official'] == True:
+            if filtered_results['is_official']:
                 print("Found {}".format(filtered_results['name']))
                 found_list.append(filtered_results['name'])
 
         print("Official images on Docker Hub:")
         for official_name in found_list[1:]:
-            print("{}. {}\n".format(found_list.index(official_name), official_name))
+            print("{}. {}".format(found_list.index(official_name), official_name))
 
         image_index_to_pull = int(input("Which image would you like to work on from the above list?\n"
                               "Enter the number which appears with the image name.\n"
