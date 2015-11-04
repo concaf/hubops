@@ -24,8 +24,8 @@ def  portstatus(rhost_ip,rhost_port):
 	print  "host {0} showing port {1} status {2} !!!".format(rhost_ip,rhost_port,port_status)
 #	print "remote is {0} and remote port is {1} ".format(rhost_ip,rhost_port)
 
-
-portstatus(rhost_ip,rhost_port)
+if  __name__ == "__main__" :
+	portstatus(rhost_ip,rhost_port)
 
 
 
