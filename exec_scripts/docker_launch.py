@@ -11,7 +11,7 @@ from random import randint
 
 class ContainerClass:
     def __init__(self):
-        self.container_name = "hubops{}".format(randint(100000,999999))
+        self.container_name = "hubops{}".format(randint(100000, 999999))
         self.container_hostname = self.container_name
         self.container_dns = ["8.8.8.8", "8.8.4.4"]
         self.container_mem_limit = "512m"
@@ -36,13 +36,19 @@ def get_image_remote(client_instance, image_repository, image_repository_tags):
         for official_name in found_list[1:]:
             print("{}. {}".format(found_list.index(official_name), official_name))
 
-        image_index_to_pull = int(input("\nWhich image would you like to work on from the above list?\n"
-                                        "Enter the number which appears with the image name.\n"
-                                        "e.g. If you want to pull\n"
-                                        "3. tomcat7\n"
-                                        "Then type in 3 and press the Enter key.\n"))
+        while True:
+            try:
+                image_index_to_pull = int(input("\nWhich image would you like to work on from the above list?\n"
+                                                "Enter the number which appears with the image name.\n"
+                                                "e.g. If you want to pull\n"
+                                                "3. tomcat7\n"
+                                                "Then type in 3 and press the Enter key.\n"))
+                image_name_to_pull = found_list[image_index_to_pull]
+                break
 
-        image_name_to_pull = found_list[image_index_to_pull]
+            except (IndexError, ValueError):
+                pass
+
         image_tags = list([''])
         image_tags_request = requests.get(
             "https://registry.hub.docker.com/v1/repositories/{}/tags".format(image_name_to_pull))
@@ -53,13 +59,23 @@ def get_image_remote(client_instance, image_repository, image_repository_tags):
         for tag_name in image_tags[1:]:
             print("{}. {}".format(image_tags.index(tag_name), tag_name))
 
+        print("\n")
+
         if image_repository_tags in image_tags[1:]:
             print("Found specified {} tag in the available tags.".format(image_repository_tags))
             image_tag_to_pull = image_repository_tags
         else:
-            print("Could not find {} tag in the available tags.".format(image_repository_tags))
-            image_tag_to_pull = image_tags[
-                int(input("Which {} tag do you want to work with?\n".format(image_name_to_pull)))]
+            print("Could not find {} tag in the available tags.\n"
+                  "Which {} tag do you want to work with?\n".format(image_repository_tags, image_name_to_pull))
+
+            while True:
+                try:
+                    tag_input = int(input())
+                    image_tag_to_pull = image_tags[tag_input]
+                    break
+                except (IndexError, ValueError):
+                    print("Enter a valid tag number!")
+                    pass
 
         image_to_pull = "{}:{}".format(image_name_to_pull, image_tag_to_pull)
         print("Pulling {} now...".format(image_to_pull))
@@ -125,9 +141,7 @@ def foreground_process(image_repository, image_repository_tags):
 
     get_image_remote(client_instance, image_repository, image_repository_tags)
 
-    print('''
-    We will launch the container now.
-    ''')
+    print("Launching container now...")
     start_container(client_instance, image_repository)
 
 
