@@ -11,11 +11,27 @@ from random import randint
 
 class ContainerClass:
     def __init__(self):
-        self.container_name = "hubops{}".format(randint(100000, 999999))
-        self.container_hostname = self.container_name
-        self.container_dns = ["8.8.8.8", "8.8.4.4"]
-        self.container_mem_limit = "512m"
-        self.container_command = "/bin/bash"
+        self.name = "hubops{}".format(randint(100000, 999999))
+        self.hostname = self.name
+
+    def host_config_defaults(self):
+        port_bindings = {22: 4022}
+        dns = ["8.8.8.8", "8.8.4.4"]
+        # network_mode = 'host'
+        # mem_limit = "512m"
+        # memswap_limit = "700m"
+        # command = "/bin/bash"
+        privileged = True
+        return locals()
+
+    def host_config_variables(self, **kwargs):
+        host_config_dict = self.host_config_defaults()
+        del host_config_dict["self"]
+
+        for config_param, config_value in kwargs.items():
+            host_config_dict.update({config_param: config_value})
+
+        return host_config_dict
 
 
 def get_image_remote(client_instance, image_repository, image_repository_tags):
@@ -117,11 +133,33 @@ def pull_process(image_to_pull, opened_client):
 
 
 def start_container(opened_client, container_up):
-    pass
-    # container = ContainerClass()
-    # opened_client.create_container(image = container_up, command = container.container_command,
-    #                                hostname = container.container_hostname, mem_limit=container.container_mem_limit,
-    #                                dns=container.container_dns, name=container.container_name)
+    container_object = ContainerClass()
+    host_config_dict_var = container_object.host_config_variables()
+    host_config_dict = dict()
+
+    for param, value in host_config_dict_var.items():
+        # exec(param + '=value')
+        host_config_dict.update(opened_client.create_host_config(**host_config_dict_var))
+
+    container = opened_client.create_container(image=container_up,
+                                               name=container_object.name,
+                                               hostname=container_object.hostname,
+                                               entrypoint="/bin/bash",
+                                               stdin_open=True,
+                                               tty=True,
+                                               ports=[22],
+                                               host_config=host_config_dict)
+
+    container_id = container['Id']
+    print("Container with ID {} has been created.".format(container_id))
+
+    if container['Warnings'] is None:
+        print("The container was created with no warnings.")
+    else:
+        print("These warning(s) popped up while creating the container.\n{}".format(container['Warnings']))
+
+    print("Starting container {}.".format(container_object.name))
+    opened_client.start(container= container_id)
 
 
 def foreground_process(image_repository, image_repository_tags):
@@ -136,13 +174,12 @@ def foreground_process(image_repository, image_repository_tags):
     if local_exists:
         print("Found the image {} locally, proceeding now.".format(user_repotag))
     elif not local_exists:
-        print("The image does not exist locally. "
+        print("The image does not exist locally.\n"
               "HubOps will now search for images on Docker Hub.\n")
+        get_image_remote(client_instance, image_repository, image_repository_tags)
 
-    get_image_remote(client_instance, image_repository, image_repository_tags)
-
-    print("Launching container now...")
-    start_container(client_instance, image_repository)
+    print("Setting up the container now...")
+    start_container(client_instance, user_repotag)
 
 
 if __name__ == '__main__':
