@@ -1,2 +1,2 @@
 # hubops
-The way IT is supposed to be
+to-be open source competitive sysops/devops framework
